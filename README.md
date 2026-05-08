@@ -1,6 +1,3 @@
-### `README.md`
-
-```markdown
 # Adaptive Intrusion Detection System (IDS-ML)
 
 This project implements a Machine Learning-based Intrusion Detection System focused on the **CIC-IDS2017** feature set. It provides a full pipeline for generating attack traffic in a virtual environment, processing packet captures (PCAPs) into labeled flow data, and evaluating models using a "Lean" version of the original CIC-IDS research notebooks.
