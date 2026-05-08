@@ -1,0 +1,18 @@
+# Data & ML
+pandas
+numpy
+scikit-learn
+xgboost
+matplotlib
+seaborn
+
+# Networking & Attacks
+scapy
+requests
+
+# Jupyter Support (The "Must-Haves")
+ipykernel
+notebook
+
+# If you use the renamed column mapping
+pickle5 ; python_version < "3.8"

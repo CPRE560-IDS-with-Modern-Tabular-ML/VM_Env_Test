@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
-pcap_to_labeled_flows.py (Updated)
+pcap_to_labeled_flows.py
 ========================
-Converts .pcap files (or whole directories) into a single labeled flows CSV.
+Converts .pcap files or directories into a single labeled flows CSV.
+Optimized for the IDS-ML repository structure.
+
+Run from project root:
+  python3 src/preprocessing/pcap_to_labeled_flows.py \
+      --pcap data/raw_pcaps/ \
+      --gt data/attack_ground_truth.csv \
+      --rename src/preprocessing/rename_map.pkl \
+      --out data/flows.csv
 """
 
 import argparse
@@ -12,11 +20,10 @@ import subprocess
 import sys
 import tempfile
 import glob
-
 import numpy as np
 import pandas as pd
 
-# Label mapping: ground truth attack_type -> CIC-IDS2017 model label
+# Updated to match attack.py types exactly
 LABEL_MAP = {
     "benign":           "BENIGN",
     "port_scan":        "PortScan",
@@ -43,54 +50,58 @@ LABEL_MAP = {
     "botnet_beacon":    "Bot",
     "botnet":           "Bot",
     "bot":              "Bot",
+    "web_brute":        "Web Attack Brute Force",
     "web_xss":          "Web Attack XSS",
     "web_sqli":         "Web Attack Sql Injection",
-    "web_brute":        "Web Attack Brute Force",
 }
 
 def run_cicflowmeter(pcap_path: str, out_csv: str) -> None:
-    candidates = [
+    """Invokes cicflowmeter tool via uv or shell."""
+    cmds = [
         ["uv", "tool", "run", "cicflowmeter", "-f", pcap_path, "-c", out_csv],
-        ["cicflowmeter",                       "-f", pcap_path, "-c", out_csv],
+        ["cicflowmeter", "-f", pcap_path, "-c", out_csv]
     ]
-    for cmd in candidates:
+    for cmd in cmds:
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0 or (
-                os.path.isfile(out_csv) and os.path.getsize(out_csv) > 0
-            ):
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode == 0 or (os.path.isfile(out_csv) and os.path.getsize(out_csv) > 0):
                 return
         except FileNotFoundError:
             continue
-    sys.exit("[-] CICFlowMeter not found. Install: uv tool install git+https://github.com/hieulw/cicflowmeter")
+    sys.exit("[-] CICFlowMeter not found. Is it installed?")
 
 def load_ground_truth(gt_path: str) -> pd.DataFrame:
+    """Loads and cleans the attack_ground_truth.csv from attack.py."""
     gt = pd.read_csv(gt_path)
     gt.columns = gt.columns.str.strip()
-    for col in ("attack_type", "start_time", "end_time"):
-        if col not in gt.columns:
-            sys.exit(f"[-] Ground truth missing required column: '{col}'")
-
+    
+    # Map the attack_type to CIC-IDS labels
     gt["label"] = gt["attack_type"].str.strip().str.lower().map(LABEL_MAP)
+    
+    # If we didn't find a mapping, keep the original name but warn
     unmapped = gt[gt["label"].isna()]["attack_type"].unique()
     if len(unmapped):
-        print(f"[!] Unmapped attack_type(s) — used as-is: {list(unmapped)}")
+        print(f"[!] Warning: No mapping for {list(unmapped)}. Using raw name.")
         gt["label"] = gt["label"].fillna(gt["attack_type"])
-
+        
     gt["start_time"] = pd.to_numeric(gt["start_time"])
-    gt["end_time"]   = pd.to_numeric(gt["end_time"])
+    gt["end_time"] = pd.to_numeric(gt["end_time"])
     return gt
 
 def assign_labels(df: pd.DataFrame, gt: pd.DataFrame) -> pd.DataFrame:
+    """Matches flow timestamps against attack ground truth windows."""
     ts_col = next((c for c in df.columns if c.lower() in ("timestamp", "ts", "flow_start_time")), None)
     if ts_col is None:
         df["Label"] = "BENIGN"
         return df
 
     ts = pd.to_numeric(df[ts_col], errors="coerce")
-    if ts.median() > 2e12: ts = ts / 1e6 # Handle microsecond timestamps
+    if ts.median() > 2e12: ts = ts / 1e6  # Convert microseconds to seconds if needed
 
+    # Default to BENIGN
     labels = pd.Series(["BENIGN"] * len(df), index=df.index, dtype=str)
+    
+    # Overwrite with attack labels based on time fences
     for _, row in gt.iterrows():
         mask = (ts >= row["start_time"]) & (ts <= row["end_time"])
         labels[mask] = row["label"]
@@ -99,78 +110,70 @@ def assign_labels(df: pd.DataFrame, gt: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def apply_rename(df: pd.DataFrame, rename_pkl: str) -> pd.DataFrame:
+    """Renames CICFlowMeter columns to match the ML model expectations."""
     with open(rename_pkl, "rb") as fh:
         rename_map = pickle.load(fh)
     df.rename(columns=rename_map, inplace=True)
+    # Common fix for duplicated header length column in some CIC versions
     if "Fwd Header Length" in df.columns:
         df["Fwd Header Length.1"] = df["Fwd Header Length"]
     return df
 
-def process_pcap(pcap_path: str, gt: pd.DataFrame | None, forced_label: str | None, tmp_dir: str) -> pd.DataFrame | None:
-    name = os.path.basename(pcap_path)
-    print(f"[*] Processing: {name}")
-    raw_csv = os.path.join(tmp_dir, f"{os.path.splitext(name)[0]}_raw.csv")
-    run_cicflowmeter(pcap_path, raw_csv)
-
-    if not os.path.isfile(raw_csv) or os.path.getsize(raw_csv) == 0:
-        return None
-
-    df = pd.read_csv(raw_csv, low_memory=False)
-    df.columns = df.columns.str.strip()
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
-
-    if forced_label:
-        df["Label"] = forced_label
-    elif gt is not None:
-        df = assign_labels(df, gt)
-    else:
-        df["Label"] = "BENIGN"
-    
-    return df
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="PCAPs/Dirs -> labeled flows CSV")
-    parser.add_argument("--pcap", required=True, nargs="+", help="PCAP files or directories")
-    parser.add_argument("--gt", help="Ground truth CSV")
-    parser.add_argument("--label", help="Force label for all flows")
-    parser.add_argument("--rename", required=True, help="rename_map.pkl")
-    parser.add_argument("--out", default="labeled_flows.csv", help="Output CSV")
+    parser = argparse.ArgumentParser(description="PCAP Directory to Labeled CSV")
+    parser.add_argument("--pcap", required=True, nargs="+", help="Files or directories of PCAPs")
+    parser.add_argument("--gt", help="Path to attack_ground_truth.csv")
+    parser.add_argument("--label", help="Force a specific label (overrides GT)")
+    parser.add_argument("--rename", required=True, help="Path to rename_map.pkl")
+    parser.add_argument("--out", default="labeled_flows.csv", help="Output filename")
     args = parser.parse_args()
 
-    # 1. Resolve all PCAP files (handle directories)
-    pcap_files = []
-    for path in args.pcap:
-        if os.path.isdir(path):
-            found = glob.glob(os.path.join(path, "*.pcap")) + glob.glob(os.path.join(path, "*.pcapng"))
-            pcap_files.extend(found)
-        elif os.path.isfile(path):
-            pcap_files.append(path)
+    # Expand directories into a list of .pcap files
+    all_pcaps = []
+    for p in args.pcap:
+        if os.path.isdir(p):
+            all_pcaps.extend(glob.glob(os.path.join(p, "*.pcap*")))
+        else:
+            all_pcaps.append(p)
     
-    if not pcap_files:
-        sys.exit("[-] No PCAP files found.")
+    if not all_pcaps:
+        sys.exit("[-] No PCAP files found in provided paths.")
 
-    print(f"[*] Found {len(pcap_files)} PCAP file(s).")
+    print(f"[*] Found {len(all_pcaps)} PCAPs. Processing...")
     gt = load_ground_truth(args.gt) if args.gt else None
-
-    # 2. Process everything
-    frames = []
+    
+    all_frames = []
     with tempfile.TemporaryDirectory() as tmp:
-        for pcap in pcap_files:
-            df = process_pcap(pcap, gt, args.label, tmp)
-            if df is not None:
-                frames.append(df)
+        for pcap in all_pcaps:
+            raw_csv = os.path.join(tmp, f"{os.path.basename(pcap)}.csv")
+            run_cicflowmeter(pcap, raw_csv)
+            
+            if os.path.exists(raw_csv):
+                df = pd.read_csv(raw_csv)
+                df.columns = df.columns.str.strip()
+                df.replace([np.inf, -np.inf], np.nan, inplace=True)
+                
+                # Labeling logic
+                if args.label:
+                    df["Label"] = args.label
+                elif gt is not None:
+                    df = assign_labels(df, gt)
+                else:
+                    df["Label"] = "BENIGN"
+                
+                all_frames.append(df)
 
-    if not frames:
-        sys.exit("[-] No flows extracted.")
+    if not all_frames:
+        sys.exit("[-] No flows were extracted.")
 
-    # 3. Merge and Rename
-    merged = pd.concat(frames, ignore_index=True)
-    merged = apply_rename(merged, args.rename)
-
-    print(f"\n[+] Final distribution:")
-    print(merged["Label"].value_counts())
-    merged.to_csv(args.out, index=False)
-    print(f"\n[+] Saved to {args.out}")
+    # Combine, rename, and save
+    final_df = pd.concat(all_frames, ignore_index=True)
+    final_df = apply_rename(final_df, args.rename)
+    
+    print(f"\n[+] Processing complete.")
+    print(final_df["Label"].value_counts())
+    final_df.to_csv(args.out, index=False)
+    print(f"[*] Final CSV saved to: {args.out}")
 
 if __name__ == "__main__":
     main()

@@ -1,16 +1,42 @@
+# --- Python and Jupyter ---
 .ipynb_checkpoints/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
 
-# environments
+# --- Project Data (The Heavy Stuff) ---
+# Ignore the data directory contents, but keep the folder itself
+data/*
+!data/.gitkeep
+
+# Individual file types just in case they end up elsewhere
+*.pcap
+*.pcapng
+*.pcap.gz
+*.csv
+*.log
+
+# --- Machine Learning Artifacts ---
+# If you want to keep the baseline model, don't ignore it specifically, 
+# but ignore everything else in models/
+models/*.json
+models/*.pkl
+!models/preprocessing_info.pkl  # Keep this as it defines your pipeline
+
+# --- Environments and Tools ---
 venv/
 .env/
+.venv/
+env/
+build/
+dist/
+*.egg-info/
+.uv/
 
-# vscode
+# --- IDEs and OS ---
 .vscode/
-
-# notebook artifacts
-*-checkpoint.ipynb
-
-# large captures
-*.pcap
+.idea/
+.DS_Store
+Thumbs.db
