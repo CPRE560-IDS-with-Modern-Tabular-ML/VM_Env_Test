@@ -35,6 +35,13 @@ dist/
 *.egg-info/
 .uv/
 
+# --- Output and Visualizations ---
+output/*
+!output/.gitkeep
+*.png
+*.html
+*.pdf
+
 # --- IDEs and OS ---
 .vscode/
 .idea/

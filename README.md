@@ -1,30 +1,27 @@
 # Adaptive Intrusion Detection System (IDS-ML)
 
-This project implements a Machine Learning-based Intrusion Detection System focused on the **CIC-IDS2017** feature set. It provides a full pipeline for generating attack traffic in a virtual environment, processing packet captures (PCAPs) into labeled flow data, and evaluating models using a "Lean" version of the original CIC-IDS research notebooks.
+This project implements a Machine Learning-based Intrusion Detection System focused on the **CIC-IDS2017** feature set. It provides a full pipeline for generating attack traffic in a virtual environment, processing packet captures (PCAPs) into labeled flow data, and performing advanced model explainability and optimization.
 
 ## Repository Structure
 
 ```text
 .
-├── docs/               # Setup instructions and documentation
+├── data/               # (Gitignored) Raw PCAPs, CSVs, and Wordlists
+│   └── wordlists/      # rockyou.txt and username lists for hydra
+├── docs/               # Class submissions and documentation
 ├── models/             # Pre-trained models and preprocessing artifacts
-│   ├── baseline_xgboost.json  # Trained XGBoost model
-│   └── preprocessing_info.pkl # Scalers/encoders for the pipeline
-├── notebooks/          # Jupyter notebooks for training and evaluation
-│   ├── LeanNotebook.ipynb     # Main evaluation/EDA notebook
-│   └── LeanNotebookWithGT.ipynb
+│   ├── baseline_xgboost.json
+│   └── preprocessing_info.pkl
+├── notebooks/          # Jupyter notebooks for analysis
+│   ├── LeanNotebook.ipynb        # Baseline evaluation
+│   └── lime_shap_optuna.ipynb    # Advanced explainability & hyper-tuning
+├── output/             # (Gitignored) SHAP/LIME plots and Optuna results
 ├── src/                # Source code
-│   ├── attacks/        # Traffic generation scripts
-│   │   └── attack.py   # Master attack script (SYN, Hulk, Slowloris, etc.)
-│   ├── preprocessing/  # Data conversion and labeling
-│   │   ├── pcap_to_labeled_flows.py
-│   │   └── rename_map.pkl
-├── data/               # (Gitignored) Raw PCAPs and generated CSVs
+│   ├── attacks/        # Traffic generation (attack.py, sender.py)
+│   └── preprocessing/  # PCAP processing & rename mapping
 ├── README.md
 ├── requirements.txt
-└── .gitignore
-
-```
+└── .gitignore```
 
 ## Quick Start
 
