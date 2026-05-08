@@ -1,0 +1,16 @@
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# environments
+venv/
+.env/
+
+# vscode
+.vscode/
+
+# notebook artifacts
+*-checkpoint.ipynb
+
+# large captures
+*.pcap
