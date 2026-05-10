@@ -2,26 +2,28 @@
 
 This project implements a Machine Learning-based Intrusion Detection System focused on the **CIC-IDS2017** feature set. It provides a full pipeline for generating attack traffic in a virtual environment, processing packet captures (PCAPs) into labeled flow data, and performing advanced model explainability and optimization.
 
+Source: UNB CIC-IDS-2017 Dataset (https://www.unb.ca/cic/datasets/ids-2017.html)
+
 ## Repository Structure
 
 ```text
 .
-├── data/               # (Gitignored) Raw PCAPs, CSVs, and Wordlists
-│   └── wordlists/      # rockyou.txt and username lists for hydra
-├── docs/               # Class submissions and documentation
-├── models/             # Pre-trained models and preprocessing artifacts
+├── data/                           # (Gitignored) Raw PCAPs, CSVs, and Wordlists
+├── docs/                           # Class submissions and documentation
+├── models/                         # Pre-trained models and preprocessing artifacts
 │   ├── baseline_xgboost.json
 │   └── preprocessing_info.pkl
-├── notebooks/          # Jupyter notebooks for analysis
-│   ├── LeanNotebook.ipynb        # Baseline evaluation
-│   └── lime_shap_optuna.ipynb    # Advanced explainability & hyper-tuning
-├── output/             # (Gitignored) SHAP/LIME plots and Optuna results
-├── src/                # Source code
-│   ├── attacks/        # Traffic generation (attack.py, sender.py)
-│   └── preprocessing/  # PCAP processing & rename mapping
+├── notebooks/                      # Jupyter notebooks for analysis
+│   ├── Notebook.ipynb              # Model Evaluation
+│   └── lime_shap_optuna.ipynb      # Feature Engineering 
+├── output/                         # (Gitignored) Plots and results
+├── src/                            # Source code
+│   ├── attacks/                    # Traffic generation (attack.py)
+│   └── preprocessing/              # PCAP processing & rename mapping
 ├── README.md
 ├── requirements.txt
-└── .gitignore```
+└── .gitignore
+```
 
 ## Quick Start
 
