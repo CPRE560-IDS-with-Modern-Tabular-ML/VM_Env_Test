@@ -3,25 +3,22 @@ pandas
 numpy
 scikit-learn
 xgboost
-imbalanced-learn  # Required for SMOTE in baseline_analysis.ipynb
+imbalanced-learn
 
 # --- Explainability & Optimization ---
-shap              # Global feature importance
-lime              # Local instance explanations
-optuna            # Hyperparameter tuning for "Adaptive" model
+shap
+lime
+optuna
 
 # --- Visualization ---
 matplotlib
 seaborn
-tqdm              # Progress bars for SHAP and Optuna trials
+tqdm
 
 # --- Network Traffic & Attacks ---
-scapy             # Packet crafting in attack.py
-requests          # HTTP-based attacks (Hulk)
+scapy
+requests
 
 # --- Jupyter Environment ---
 ipykernel
 notebook
-
-# --- Utilities ---
-pickle5           # Compatibility for loading preprocessing_info.pkl

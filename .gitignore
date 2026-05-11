@@ -41,6 +41,10 @@ output/*
 *.png
 *.html
 *.pdf
+*.pptx
+# ALLOW PDFs and Presentations inside the docs/ folder
+!docs/*.pdf
+!docs/*.pptx
 
 # --- IDEs and OS ---
 .vscode/
