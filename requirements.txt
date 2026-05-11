@@ -1,18 +1,27 @@
-# Data & ML
+# --- Core Data Science & ML ---
 pandas
 numpy
 scikit-learn
 xgboost
+imbalanced-learn  # Required for SMOTE in baseline_analysis.ipynb
+
+# --- Explainability & Optimization ---
+shap              # Global feature importance
+lime              # Local instance explanations
+optuna            # Hyperparameter tuning for "Adaptive" model
+
+# --- Visualization ---
 matplotlib
 seaborn
+tqdm              # Progress bars for SHAP and Optuna trials
 
-# Networking & Attacks
-scapy
-requests
+# --- Network Traffic & Attacks ---
+scapy             # Packet crafting in attack.py
+requests          # HTTP-based attacks (Hulk)
 
-# Jupyter Support (The "Must-Haves")
+# --- Jupyter Environment ---
 ipykernel
 notebook
 
-# If you use the renamed column mapping
-pickle5 ; python_version < "3.8"
+# --- Utilities ---
+pickle5           # Compatibility for loading preprocessing_info.pkl
