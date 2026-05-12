@@ -17,15 +17,19 @@ Run `sudo python3 attack.py --help` to list attack types.
 Run `sudo python3 attack.py <attack_type> --help` for per-attack options.
 """
 
-import argparse, os, sys, time, random, subprocess, threading, socket
+import argparse, os, sys, time, random, subprocess, threading, socket, csv
 from scapy.all import IP, TCP, UDP, ICMP, Raw, send, sendp, Ether, RandIP, RandShort
 
 GROUND_TRUTH_FILE = "attack_ground_truth.csv"
-GROUND_TRUTH_HEADER = "attack_id,attack_type,start_time,end_time,target_ip,src_ip_used,notes\n"
+# Updated to a list so the csv library can handle it properly
+GROUND_TRUTH_HEADER = ["attack_id", "attack_type", "start_time", "end_time", "target_ip", "src_ip_used", "notes"]
 
 def ensure_ground_truth_header():
+    """Creates the file and header using the safe CSV writer if it doesn't exist."""
     if not os.path.exists(GROUND_TRUTH_FILE) or os.path.getsize(GROUND_TRUTH_FILE) == 0:
-        with open(GROUND_TRUTH_FILE, "w") as f: f.write(GROUND_TRUTH_HEADER)
+        with open(GROUND_TRUTH_FILE, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(GROUND_TRUTH_HEADER)
 
 def next_attack_id():
     ensure_ground_truth_header()
@@ -33,12 +37,15 @@ def next_attack_id():
     return max(0, len(lines) - 1)  # subtract header
 
 def log_fence(attack_type, start_time, end_time, target_ip, src_ip_used, notes):
-    """Append one row to the ground truth fence file."""
+    """Append one row to the ground truth fence file safely using the CSV library."""
     ensure_ground_truth_header()
     aid = next_attack_id()
-    notes_clean = notes.replace(",", ";")  # avoid breaking CSV
-    with open(GROUND_TRUTH_FILE, "a") as f:
-        f.write(f"{aid},{attack_type},{start_time:.6f},{end_time:.6f},{target_ip},{src_ip_used},{notes_clean}\n")
+    
+    with open(GROUND_TRUTH_FILE, "a", newline="") as f:
+        writer = csv.writer(f)
+        # The CSV writer automatically handles rogue commas inside the notes or IP fields
+        writer.writerow([aid, attack_type, f"{start_time:.6f}", f"{end_time:.6f}", target_ip, src_ip_used, notes])
+        
     print(f"[+] Logged fence: id={aid} type={attack_type} duration={end_time - start_time:.2f}s")
 
 def run_cmd(cmd, timeout=None):
