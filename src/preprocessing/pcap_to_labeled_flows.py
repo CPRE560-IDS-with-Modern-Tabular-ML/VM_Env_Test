@@ -114,7 +114,10 @@ def assign_labels(df: pd.DataFrame, gt: pd.DataFrame) -> pd.DataFrame:
         return df
 
     ts = pd.to_numeric(df[ts_col], errors="coerce")
-    if ts.median() > 2e12:
+    if ts.isna().all():
+        # CICFlowMeter wrote human-readable datetimes — convert to epoch
+        ts = pd.to_datetime(df[ts_col], errors="coerce").astype("int64") / 1e9
+    elif ts.median() > 2e12:
         ts = ts / 1e6  # microseconds → seconds
 
     labels = pd.Series(["BENIGN"] * len(df), index=df.index, dtype=str)
