@@ -84,10 +84,18 @@ def run_cicflowmeter(pcap_path: str, out_csv: str) -> None:
 
 def load_ground_truth(gt_path: str) -> pd.DataFrame:
     """Loads and cleans attack_ground_truth.csv produced by attack.py."""
-    gt = pd.read_csv(gt_path)
-    gt.columns = gt.columns.str.strip()
+    gt = pd.read_csv(path)
+    
+    # --- FIX STARTS HERE ---
+    # 1. Drop rows where attack_type is missing
+    gt = gt.dropna(subset=['attack_type'])
+    
+    # 2. Force attack_type to be a string before using .str
+    gt['attack_type'] = gt['attack_type'].astype(str)
+    # --- FIX ENDS HERE ---
 
     gt["label"] = gt["attack_type"].str.strip().str.lower().map(LABEL_MAP)
+    # ... rest of the function ...
 
     unmapped = gt[gt["label"].isna()]["attack_type"].unique()
     if len(unmapped):
