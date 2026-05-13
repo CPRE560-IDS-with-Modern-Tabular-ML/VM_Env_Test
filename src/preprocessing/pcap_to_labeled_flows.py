@@ -100,6 +100,14 @@ def load_ground_truth(gt_path: str) -> pd.DataFrame:
 
     gt["start_time"] = pd.to_numeric(gt["start_time"])
     gt["end_time"]   = pd.to_numeric(gt["end_time"])
+    # Ensure every attack window is at least 60 seconds wide
+    MIN_WINDOW = 60
+    narrow = (gt["end_time"] - gt["start_time"]) < MIN_WINDOW
+    gt.loc[narrow, "start_time"] -= MIN_WINDOW / 2
+    gt.loc[narrow, "end_time"]   += MIN_WINDOW / 2
+    if narrow.any():
+        print(f"[!] Widened {narrow.sum()} narrow window(s) to {MIN_WINDOW}s minimum.")
+    gt["label"] = gt["label"].str.replace("\ufffd ", "", regex=False)
     return gt
 
 
@@ -116,7 +124,7 @@ def assign_labels(df: pd.DataFrame, gt: pd.DataFrame) -> pd.DataFrame:
     ts = pd.to_numeric(df[ts_col], errors="coerce")
     if ts.isna().all():
         # CICFlowMeter wrote human-readable datetimes — convert to epoch
-        ts = pd.to_datetime(df[ts_col], errors="coerce").astype("int64") / 1e9
+        ts = pd.to_datetime(df[ts_col], errors="coerce").dt.tz_localize("America/Chicago").astype("int64") / 1e6
     elif ts.median() > 2e12:
         ts = ts / 1e6  # microseconds → seconds
 
