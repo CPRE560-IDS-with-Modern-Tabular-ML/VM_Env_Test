@@ -23,7 +23,10 @@ data/*
 # but ignore everything else in models/
 models/*.json
 models/*.pkl
-!models/preprocessing_info.pkl  # Keep this as it defines your pipeline
+!models/baseline_xgboost.json
+!models/retrained_model.json
+!models/preprocessing_info.pkl  
+!models/retrained_preprocessing_info.pkl
 
 # --- Environments and Tools ---
 venv/
